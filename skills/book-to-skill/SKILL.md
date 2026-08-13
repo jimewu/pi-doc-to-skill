@@ -193,11 +193,18 @@ Run the extraction script on the Markdown sources to produce combined text + met
 
 ```bash
 SCRIPT_PATH=""
+if [ -n "$PI_DOC_TO_SKILL_ROOT" ]; then
+  SCRIPT_PATH="$PI_DOC_TO_SKILL_ROOT/scripts/extract.py"
+fi
+if [ -z "$SCRIPT_PATH" ]; then
 for candidate in \
   "$HOME/.agents/skills/book-to-skill/scripts/extract.py" \
   "$HOME/.pi/agent/skills/book-to-skill/scripts/extract.py" \
   "$HOME/.copilot/skills/book-to-skill/scripts/extract.py" \
   "$HOME/.claude/skills/book-to-skill/scripts/extract.py" \
+  "$HOME/.pi/agent/git/"*/pi-doc-to-skill/scripts/extract.py \
+  "$HOME/.pi/agent/npm/"*/pi-doc-to-skill/scripts/extract.py \
+  "$HOME/.pi/agent/npm/node_modules/pi-doc-to-skill/scripts/extract.py" \
   ".agents/skills/book-to-skill/scripts/extract.py" \
   ".github/skills/book-to-skill/scripts/extract.py" \
   ".claude/skills/book-to-skill/scripts/extract.py" \
@@ -208,9 +215,11 @@ do
     break
   fi
 done
+fi
 
 if [ -z "$SCRIPT_PATH" ]; then
   echo "Could not find scripts/extract.py for book-to-skill" >&2
+  echo "Installed as a pi package? Export PI_DOC_TO_SKILL_ROOT=<package-root>." >&2
   exit 1
 fi
 

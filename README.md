@@ -34,12 +34,16 @@ in how the book-like Markdown is obtained.
 pi install <path-to-this-repo>      # or: pi install git:github.com/you/pi-doc-to-skill
 ```
 
-Python dependencies for the site crawler (only needed for **dynamic** /
-JS-rendered sites; static sites work with the stdlib + trafilatura path):
+Python dependencies live in a **repo-local virtualenv** (`.venv/`, git-ignored)
+so crawl4ai/trafilatura never touch your system Python. One-time setup:
 
 ```bash
-pip install -e "<package-root>[crawl]" && playwright install chromium
+bash scripts/setup-venv.sh    # .venv + crawl extra + playwright chromium
 ```
+
+The extension tools pick up `.venv/bin/python` automatically (override with
+`SITE2MD_PYTHON`). Static sites need no virtualenv at all — only dynamic
+(JS-rendered) sites require it.
 
 ## Custom tools
 
@@ -47,13 +51,14 @@ pip install -e "<package-root>[crawl]" && playwright install chromium
 |---|---|
 | `site_inspect <url>` | Probe the site: generator detection, sitemap / search-index / github-repo discovery, recommended strategy (JSON) |
 | `site2md <url> <outdir> [strategy=…]` | Crawl + tidy + assemble a book-like Markdown corpus (`sources/*.md` + `metadata.json`) |
+| `page_fetch <url> [out]` | Render one **JS-heavy URL** in a browser (crawl4ai/playwright) → clean Markdown. Standalone, reusable by any skill |
 | `page_extract <html> <out.md>` | One HTML file → clean Markdown (trafilatura → bs4) |
 
 Strategies, best first: **source-repo** (public Rmd/MD sources) →
 **search-index** (bookdown full text) → **sitemap** (version-aware) → **toc**
 (nav links) → **bfs** (bounded crawl). The crawler handles both static sites
-(requests + trafilatura, zero heavy deps) and dynamic sites (crawl4ai/playwright,
-lazy-loaded).
+(requests + trafilatura, zero heavy deps) and dynamic sites via `page_fetch`
+(crawl4ai/playwright).
 
 ## Quick start
 

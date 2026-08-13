@@ -14,6 +14,7 @@
  */
 
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -28,7 +29,16 @@ const STRATEGIES = ["auto", "source-repo", "search-index", "sitemap", "toc", "bf
 
 export default function siteToolsExtension(pi: ExtensionAPI) {
   const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-  const python = process.env.SITE2MD_PYTHON ?? "python3";
+  // Prefer the repo-local virtualenv (setup-venv.sh) so crawl4ai/trafilatura
+  // live in .venv, never in the system Python. Fall back to an explicit env
+  // override, then to the system interpreter.
+  const venvPython =
+    process.platform === "win32"
+      ? resolve(repoRoot, ".venv/Scripts/python.exe")
+      : resolve(repoRoot, ".venv/bin/python");
+  const python =
+    process.env.SITE2MD_PYTHON ??
+    (existsSync(venvPython) ? venvPython : "python3");
 
   async function runCli(args: string[], signal?: AbortSignal, timeoutMs = 900_000): Promise<string> {
     try {
@@ -59,6 +69,32 @@ export default function siteToolsExtension(pi: ExtensionAPI) {
       throw new Error(`site2md failed: ${stderr || e?.message}`);
     }
   }
+
+  pi.registerTool({
+    name: "page_fetch",
+    label: "Page Fetch (browser)",
+    description:
+      "Render a JavaScript-heavy URL in a real browser (crawl4ai/playwright) and return its clean Markdown (nav/header/footer stripped). Use when a page's content is not present in plain HTML: SPAs, client-side rendered docs, lazy-loaded content. Requires the repo-local .venv with the crawl extra (scripts/setup-venv.sh).",
+    promptSnippet: "Fetch a dynamic webpage as clean Markdown via a browser",
+    promptGuidelines: [
+      "Use page_fetch for JS-rendered pages where a plain HTML fetch yields little content.",
+    ],
+    parameters: Type.Object({
+      url: Type.String({ description: "URL to render" }),
+      out: Type.Optional(
+        Type.String({ description: "Optional output .md path (default: stdout)" }),
+      ),
+    }),
+    async execute(_toolCallId, params, signal) {
+      const args = ["browser-md", params.url];
+      if (params.out) args.push(params.out);
+      const out = await runCli(args, signal);
+      return {
+        content: [{ type: "text", text: out }],
+        details: { tool: "page_fetch", url: params.url },
+      };
+    },
+  });
 
   pi.registerTool({
     name: "site_inspect",

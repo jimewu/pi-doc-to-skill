@@ -117,12 +117,17 @@ Each chapter file carries its **source URL** in a `Source:` line — keep it:
 the generated skill cites it, and Step 4 verification uses it.
 
 **Dynamic sites** (`dynamic: true`, or empty results from the static path):
-`site2md` falls back to a browser via crawl4ai. That dependency is optional —
-install once:
+`site2md` falls back to a browser via crawl4ai. That dependency lives in the
+repo-local virtualenv — install once:
 
 ```bash
-pip install -e "<package-root>[crawl]" && playwright install chromium
+bash <package-root>/scripts/setup-venv.sh   # .venv + crawl extra + playwright chromium
 ```
+
+The extension tools automatically use `.venv/bin/python`; no system-Python
+changes. For a single JS-heavy page (not a whole crawl), the standalone
+**`page_fetch`** tool renders one URL and returns clean Markdown — reusable by
+any skill, not just this one.
 
 If the crawl yields very little (e.g. only the landing page), the site is
 probably JS-rendered: install the crawl extra and re-run.

@@ -30,11 +30,13 @@ site-to-skill:  網站（URL）→ inspect → crawl+tidy → corpus ─┤
 pi install <path-to-this-repo>      # 或：pi install git:github.com/you/pi-doc-to-skill
 ```
 
-網站爬蟲的 Python 依賴（僅**動態/JS 渲染**站需要；靜態站走 stdlib + trafilatura 路徑，零重依賴）：
+Python 依賴放在 **repo 本機 virtualenv**（`.venv/`，已 gitignore），crawl4ai/trafilatura 不會碰系統 Python。一次性設定：
 
 ```bash
-pip install -e "<package-root>[crawl]" && playwright install chromium
+bash scripts/setup-venv.sh    # .venv + crawl extra + playwright chromium
 ```
+
+extension tools 會自動使用 `.venv/bin/python`（可用 `SITE2MD_PYTHON` 覆蓋）。靜態站完全不需要 virtualenv — 只有動態（JS 渲染）站需要。
 
 ## Custom tools
 
@@ -42,9 +44,10 @@ pip install -e "<package-root>[crawl]" && playwright install chromium
 |---|---|
 | `site_inspect <url>` | 探查網站：generator 偵測、sitemap / search-index / github-repo 發現、建議策略（JSON） |
 | `site2md <url> <outdir> [strategy=…]` | crawl + tidy + 組裝 book-like Markdown corpus（`sources/*.md` + `metadata.json`） |
+| `page_fetch <url> [out]` | 用瀏覽器渲染單一 **JS 重度** URL（crawl4ai/playwright）→ 乾淨 Markdown。獨立可復用 |
 | `page_extract <html> <out.md>` | 單一 HTML 檔 → 乾淨 Markdown（trafilatura → bs4） |
 
-策略依品質排序：**source-repo**（公開 Rmd/MD 源碼）→ **search-index**（bookdown 全文）→ **sitemap**（版本感知）→ **toc**（導航連結）→ **bfs**（有限深度爬取）。爬蟲同時支援靜態站（requests + trafilatura）與動態站（crawl4ai/playwright，lazy 載入）。
+策略依品質排序：**source-repo**（公開 Rmd/MD 源碼）→ **search-index**（bookdown 全文）→ **sitemap**（版本感知）→ **toc**（導航連結）→ **bfs**（有限深度爬取）。爬蟲同時支援靜態站（requests + trafilatura）與動態站（`page_fetch`/crawl4ai/playwright）。
 
 ## 快速上手
 

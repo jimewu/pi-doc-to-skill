@@ -387,6 +387,34 @@ def cmd_page_extract(html_path: Path, out_path: Path) -> int:
     return 0
 
 
+def cmd_browser_md(url: str, out: Optional[str] = None) -> int:
+    """Render one URL in a real browser (crawl4ai/playwright) and return its
+    clean Markdown. Standalone: usable by any workflow for JS-rendered pages.
+    Requires the .venv with the crawl extra installed."""
+    md = fetch_markdown_with_browser(url)
+    if not md:
+        print(
+            json.dumps(
+                {
+                    "error": (
+                        "browser fetch failed (crawl4ai unavailable or page error). "
+                        "Install the crawl extra into .venv: "
+                        "scripts/setup-venv.sh"
+                    )
+                }
+            ),
+            file=sys.stderr,
+        )
+        return 1
+    md = strip_nav_furniture(md)
+    if out:
+        Path(out).write_text(md, encoding="utf-8")
+        print(json.dumps({"ok": True, "url": url, "output": out, "chars": len(md)}))
+    else:
+        print(md)
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="site2md", description="Turn a book-like website into a Markdown corpus")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -408,6 +436,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_page.add_argument("html")
     p_page.add_argument("out")
 
+    p_fetch = sub.add_parser(
+        "browser-md",
+        help="render one URL in a browser (crawl4ai) and return clean markdown",
+    )
+    p_fetch.add_argument("url")
+    p_fetch.add_argument("out", nargs="?", help="optional output .md file")
+
     args = parser.parse_args(argv)
     if args.command == "inspect":
         return cmd_inspect(args.url)
@@ -416,6 +451,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                          args.include, args.exclude)
     if args.command == "page-extract":
         return cmd_page_extract(Path(args.html), Path(args.out))
+    if args.command == "browser-md":
+        return cmd_browser_md(args.url, args.out)
     return 1
 
 

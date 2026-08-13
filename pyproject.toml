@@ -35,6 +35,9 @@ all = [
 ]
 
 
+[tool.hatch.build.targets.wheel]
+packages = ["book_to_skill", "site2md"]
+
 # Tooling config so `ruff check .` and `pytest` locally match CI without flags.
 [tool.ruff]
 target-version = "py39"

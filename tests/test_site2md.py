@@ -315,3 +315,20 @@ class TestCli:
     def test_guess_title(self):
         assert cli._guess_title("https://h/02-basics.html", "# Basics\n") == "Basics"
         assert cli._guess_title("https://h/02-basics.html", "no heading") == "02 basics"
+
+    def test_browser_md_missing_dependency(self, monkeypatch):
+        # crawl4ai unavailable → error path (exit 1, no exception)
+        monkeypatch.setattr(cli, "fetch_markdown_with_browser", lambda url: None)
+        assert cli.cmd_browser_md("https://example.com") == 1
+
+    def test_browser_md_ok(self, monkeypatch, tmp_path: Path):
+        monkeypatch.setattr(
+            cli,
+            "fetch_markdown_with_browser",
+            lambda url: "# Title\n\n[Previous](x.html)\nbody text\n",
+        )
+        out = tmp_path / "out.md"
+        assert cli.cmd_browser_md("https://example.com", str(out)) == 0
+        md = out.read_text(encoding="utf-8")
+        assert "# Title" in md
+        assert "[Previous]" not in md  # strip_nav_furniture ran

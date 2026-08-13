@@ -13,6 +13,9 @@ build/
 # uv lockfile (not pinned for a library/tool; deps live in pyproject extras)
 uv.lock
 
+# Repo-local virtualenv for crawl dependencies (setup-venv.sh)
+.venv/
+
 # Local design specifications & prompts with agent
 PLAN
 

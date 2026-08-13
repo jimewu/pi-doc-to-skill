@@ -5,6 +5,11 @@
   "keywords": ["pi-package", "skills", "agent", "book-to-skill", "crawler"],
   "license": "MIT",
   "type": "module",
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
   "pi": {
     "extensions": ["./extensions"],
     "skills": ["./skills"]

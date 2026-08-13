@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test deps
+        run: pip install pytest beautifulsoup4
+      - name: Run test suite
+        run: pytest tests/ -q
+
+  lint:
+    name: lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Ruff check
+        run: ruff check --select E9,F --target-version py310 book_to_skill/ site2md/ scripts/ tests/ tools/
+
+  smoke:
+    name: smoke (dependency-free paths)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Extract a sample with no optional deps installed
+        run: |
+          set -euo pipefail
+          mkdir -p sample
+          printf '# Backpressure\n\nChapter 1\nBounded queues prevent overload.\n' > sample/note.md
+          export BOOK_SKILL_WORKDIR="$RUNNER_TEMP/work"
+          python3 scripts/extract.py sample/note.md --mode text --install-missing no
+          test -f "$BOOK_SKILL_WORKDIR/full_text.txt"
+          test -f "$BOOK_SKILL_WORKDIR/metadata.json"
+          grep -q "Backpressure" "$BOOK_SKILL_WORKDIR/full_text.txt"
+      - name: site2md page-extract (no network)
+        run: |
+          set -euo pipefail
+          printf '<html><body><nav>menu</nav><article><h1>Chapter</h1><p>Body text.</p></article><footer>foot</footer></body></html>' > page.html
+          python3 -m site2md.cli page-extract page.html out.md
+          grep -q "Chapter" out.md
+          ! grep -q "menu" out.md
+
+  security:
+    name: security (bandit + zizmor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Install scanners
+        run: pip install bandit zizmor
+      - name: Bandit — gate on HIGH severity
+        run: bandit -q -r book_to_skill site2md scripts tools --severity-level high --confidence-level medium
+      - name: Bandit — report MEDIUM+ (informational)
+        run: bandit -q -r book_to_skill site2md scripts tools -ll || true
+      - name: Zizmor — workflow audit (informational)
+        run: zizmor .github/workflows/ || true
+
+  validate-skill:
+    name: validate SKILL.md files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Audit both SKILL.md files
+        run: |
+          set -euo pipefail
+          python3 tools/validate_skill.py skills/book-to-skill/SKILL.md
+          python3 tools/validate_skill.py skills/site-to-skill/SKILL.md
+
+  package:
+    name: package (pi manifest sanity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: "20"
+      - name: Validate package.json
+        run: node -e "const p=require('./package.json'); if(!p.pi||!p.pi.extensions||!p.pi.skills) throw new Error('pi manifest incomplete'); console.log('pi manifest ok:', JSON.stringify(p.pi));"
+
+  dependency-review:
+    name: dependency review (PR)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Dependency review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: always
+
+  pr-title:
+    name: PR title (Conventional Commits)
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+          title = (os.environ.get("PR_TITLE") or "").strip()
+          pattern = r"^(feat|fix|perf|refactor|docs|sec|chore|ci|test|build|style|revert)(\([\w.\-/ ]+\))?!?: .+"
+          if not re.match(pattern, title):
+              print(f"PR title is not a Conventional Commit:\n  {title!r}\n")
+              print("Expected: <type>(<optional scope>): <subject>")
+              sys.exit(1)
+          print("PR title looks good.")
+          PY

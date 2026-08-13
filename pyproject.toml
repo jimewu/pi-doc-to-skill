@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pi-doc-to-skill"
+version = "2.0.0"
+description = "Convert documents and book-like websites into structured, on-demand agent skills (book-to-skill + site-to-skill)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+[project.scripts]
+book-to-skill = "book_to_skill.cli:main"
+site2md = "site2md.cli:main"
+
+[project.optional-dependencies]
+epub = ["ebooklib", "beautifulsoup4"]
+pdf = ["pypdf", "pdfminer.six"]
+docx = ["python-docx"]
+rtf = ["striprtf"]
+technical = ["docling"]
+# Web site → book corpus (site-to-skill)
+crawl = ["crawl4ai>=0.9.2", "trafilatura>=2.0", "beautifulsoup4"]
+all = [
+    "ebooklib",
+    "beautifulsoup4",
+    "pypdf",
+    "pdfminer.six",
+    "python-docx",
+    "striprtf",
+    "docling",
+    "crawl4ai",
+    "trafilatura",
+]
+
+
+# Tooling config so `ruff check .` and `pytest` locally match CI without flags.
+[tool.ruff]
+target-version = "py39"
+
+[tool.ruff.lint]
+# High-value gate only: syntax errors (E9) + pyflakes (F). Style stays ungated.
+select = ["E9", "F"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

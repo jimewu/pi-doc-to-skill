@@ -1,0 +1,12 @@
+{
+  "name": "pi-doc-to-skill",
+  "version": "2.0.0",
+  "description": "Convert documents and book-like websites into reusable agent skills. Bundle of book-to-skill + site-to-skill skills with pi custom tools.",
+  "keywords": ["pi-package", "skills", "agent", "book-to-skill", "crawler"],
+  "license": "MIT",
+  "type": "module",
+  "pi": {
+    "extensions": ["./extensions"],
+    "skills": ["./skills"]
+  }
+}

@@ -1,0 +1,23 @@
+*.pyc
+__pycache__/
+
+# Agent session traces — never commit
+.stone/
+**/.stone/
+
+# PyPI packaging build directories
+dist/
+build/
+*.egg-info/
+
+# uv lockfile (not pinned for a library/tool; deps live in pyproject extras)
+uv.lock
+
+# Local design specifications & prompts with agent
+PLAN
+
+# MkDocs: build output
+site/
+
+# Crawl workspace / test artifacts
+*.crawl_tmp/

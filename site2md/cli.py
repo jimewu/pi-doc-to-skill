@@ -179,24 +179,65 @@ def _parse_sitemap_urls(xml_text: str, base_url: str, session: requests.Session,
     return urls
 
 
-def sitemap_urls(sitemap_url: str, session: requests.Session) -> list[str]:
+def sitemap_urls(sitemap_url: str, session: requests.Session, prefer_prefix: str = "") -> list[str]:
+    """Parse a sitemap (or sitemap index). When the sitemap lists multiple
+    site versions (Read the Docs: /en/latest/, /en/stable/, /en/8.x/...) and a
+    prefix is given, keep only URLs under that prefix."""
     r = session.get(sitemap_url, timeout=DEFAULT_TIMEOUT)
     if r.status_code != 200:
         raise RuntimeError(f"GET {sitemap_url} → HTTP {r.status_code}")
-    return _parse_sitemap_urls(r.text, sitemap_url, session)
+    urls = _parse_sitemap_urls(r.text, sitemap_url, session)
+    if prefer_prefix:
+        prefixed = [u for u in urls if urlparse(u).path.startswith(prefer_prefix)]
+        if prefixed:
+            return prefixed
+    return urls
 
 
 def toc_urls(html: str, base_url: str) -> list[str]:
-    """Ordered same-host .html links from the landing page's nav/sidebar."""
+    """Ordered same-host .html links from the landing page's nav/sidebar.
+
+    Selector ladder: <nav> → known theme containers (.sidebar-tree for Furo,
+    .wy-nav-side for Read the Docs, .book-summary for GitBook, .bd-toc, ...) →
+    generic container tags whose class/id mention toc/sidebar/menu/contents
+    (container tags only, never <svg>) → whole page fallback.
+    """
     from bs4 import BeautifulSoup
 
     soup = BeautifulSoup(html, "html.parser")
-    nav = (
-        soup.find("nav")
-        or soup.find(id=re.compile(r"toc|sidebar|menu|contents", re.I))
-        or soup.find(class_=re.compile(r"toc|sidebar|menu|book-summary|contents", re.I))
-    )
-    container = nav or soup
+    container = None
+    for sel in [
+        "nav",
+        ".sidebar-tree",
+        ".wy-nav-side",
+        ".bd-toc",
+        ".book-summary",
+        "#toc",
+        ".toc",
+        "#menu",
+        ".menu",
+        "#contents",
+        ".contents",
+        "[role='navigation']",
+    ]:
+        el = soup.select_one(sel)
+        if el is not None and el.find("a", href=True):
+            container = el
+            break
+    if container is None:
+        container = next(
+            (
+                t
+                for t in soup.find_all(["div", "aside", "nav", "ul", "ol"])
+                if any(
+                    kw in " ".join(t.get("class") or []).lower()
+                    + " " + (t.get("id") or "").lower()
+                    for kw in ("toc", "sidebar", "menu", "contents")
+                )
+                and t.find("a", href=True)
+            ),
+            soup,
+        )
     urls: list[str] = []
     for a in container.find_all("a", href=True):
         full = urljoin(base_url, a["href"])
@@ -300,7 +341,14 @@ def cmd_crawl(
         )
     else:
         if chosen == "sitemap" and report.sitemap_url:
-            urls = sitemap_urls(report.sitemap_url, session)
+            urls = sitemap_urls(
+                report.sitemap_url, session, prefer_prefix=urlparse(report.url).path
+            )
+            if len(urls) < 5:
+                # Version-entry sitemap (Read the Docs lists only the landing
+                # page per version) — fall back to the ToC of the current page.
+                html = fetch_html(report.url, session)
+                urls = toc_urls(html or "", report.url)
         elif chosen == "toc":
             html = fetch_html(report.url, session)
             urls = toc_urls(html or "", report.url)

@@ -210,7 +210,7 @@ tags: [udi, labelling]
 ```yaml
 ---
 name: <skill_name>
-description: "Knowledge base from \"<Title>\" (<version>) by <issuer/author>. <What the skill covers, 3–6 key terms>. Use when ... "
+description: "Use when an agent must <what the user asks that triggers this skill>. <1–2 clauses of scope, no feature inventory>"
 metadata:
   version: 1.0.0                       # this skill's own version; bump per update
   book-to-skill-version: 2.0.0        # pi-doc-to-skill package version used to create/update it
@@ -226,7 +226,9 @@ metadata:
 ---
 ```
 
-Rules: every source needs `version` **or** `date`; a `superseded` source stays listed so old references still resolve, but the SKILL.md map points to the current one.
+**`description` is a trigger, not a table of contents** — it decides when the agent loads the skill, so it must answer only "when should I use this?": start with `Use when an agent must …`, name the user-visible goal, optionally 1–2 clauses of scope. **Hard limit ≤ 1024 characters** (Agent Skills standard; pi warns beyond it). Do NOT list the covered features, options, sources, versions, or local-testing details — that content belongs in the body; sources/versions go in `metadata.sources`, not in `description`.
+
+Other rules: every source needs `version` **or** `date`; a `superseded` source stays listed so old references still resolve, but the SKILL.md map points to the current one.
 
 ### reference mode body
 

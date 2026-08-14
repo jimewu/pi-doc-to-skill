@@ -229,6 +229,12 @@ class TestAssemble:
         assert assemble.slugify("  R Markdown  ") == "r-markdown"
         assert assemble.slugify("!!!") == "page"
 
+    def test_slug_capped_for_long_bookdown_titles(self):
+        # bookdown search-index titles concatenate every section heading
+        ch = assemble.Chapter(order=1, url="https://h/", title="Section " * 30, markdown="x")
+        assert len(ch.slug) < 80
+        assert ch.slug.startswith("01-")
+
 
 # ---------------------------------------------------------------------------
 # cli — URL-list strategies & filters

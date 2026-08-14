@@ -43,7 +43,10 @@ class Chapter:
 
     @property
     def slug(self) -> str:
-        return f"{self.order:02d}-{slugify(self.title)}"
+        # bookdown search-index titles can string every section heading into
+        # one long title; cap the slug so filenames stay well under 255 chars.
+        s = slugify(self.title)[:60].strip("-")
+        return f"{self.order:02d}-{s}"
 
 
 def _chapter_header(chapter: Chapter) -> str:

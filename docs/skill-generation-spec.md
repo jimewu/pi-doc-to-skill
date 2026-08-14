@@ -208,7 +208,7 @@ name: <skill_name>
 description: "Knowledge base from \"<Title>\" (<version>) by <issuer/author>. <What the skill covers, 3–6 key terms>. Use when ... "
 metadata:
   version: 1.0.0                       # this skill's own version; bump per update
-  book-to-skill-version: 1.3.0-jmw.1   # version used to create/update it
+  book-to-skill-version: 2.0.0        # pi-doc-to-skill package version used to create/update it
   mode: reference                      # or study
   sources:
     - name: "Regulation (EU) 2017/745 (MDR)"

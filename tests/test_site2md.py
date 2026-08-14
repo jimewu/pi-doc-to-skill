@@ -288,6 +288,9 @@ class TestCliStrategies:
                             "tree": [
                                 {"type": "blob", "path": "01-intro.Rmd"},
                                 {"type": "blob", "path": "02-basics.Rmd"},
+                                {"type": "blob", "path": "examples/dashboard.Rmd"},
+                                {"type": "blob", "path": "examples/shiny.Rmd"},
+                                {"type": "blob", "path": "README.md"},
                                 {"type": "blob", "path": "cover.png"},
                                 {"type": "blob", "path": ".gitignore"},
                             ]

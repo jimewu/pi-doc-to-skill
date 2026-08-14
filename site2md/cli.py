@@ -104,7 +104,14 @@ def source_repo_chapters(repo: str, session: requests.Session) -> list[Chapter]:
         if it.get("type") == "blob"
         and it["path"].lower().endswith((".rmd", ".md", ".qmd", ".markdown"))
         and not it["path"].lower().startswith(("."))
+        and it["path"].lower() != "readme.md"
     ]
+    # bookdown convention: the book's chapters live in the repo root. Drop
+    # sub-directory files (examples/, docs/, ...) unless the root has no
+    # chapter files at all (some repos keep chapters/).
+    root_items = [it for it in items if "/" not in it["path"]]
+    if root_items:
+        items = root_items
     items.sort(key=lambda it: it["path"].lower())
     chapters: list[Chapter] = []
     for i, it in enumerate(items, start=1):

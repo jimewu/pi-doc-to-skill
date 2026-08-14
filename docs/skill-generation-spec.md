@@ -62,6 +62,10 @@ The goal: exact original text, split so no agent ever needs more than one small 
    ```
    Article-level files use `# <Chapter Title> — Art <N>: <title>` with a one-line index block.
 9. Skip front matter, ToC, and page furniture (running headers/footers, page numbers) — they are not content.
+10. **Source traceability — mandatory for every chapter file (both modes).** The `Source:` line must identify the exact document and its provenance so later updates can be traced:
+    - Offline documents: `Source: <Title> (<edition/version>), <filename>`
+    - Web sources: `Source: <Title> (<version>), <URL>, accessed <YYYY-MM-DD>` — the access date is **required** for web content because it changes over time.
+    - When a skill merges multiple sources, keep each source's files in its own folder (`<doc-slug>/`, see Step 8) so **no single file mixes provenances**; the `Source:` line then names exactly one source per file.
 
 ### study mode — distilled chapters
 
@@ -77,6 +81,7 @@ For EACH chapter/section identified in Step 3, read the corresponding section of
 
 ```markdown
 # Chapter N: <Full Title>
+Source: <Title> (<version>), <URL for web sources>, accessed <YYYY-MM-DD>  ← mandatory, one source per file
 
 ## Core Idea
 <1–2 sentences: the single most important thing this chapter teaches>
@@ -389,6 +394,10 @@ Decide what kind of change this is, then apply the matching pattern:
   2. **Source hierarchy** in SKILL.md (see Step 9): state each source's rank (regulation/standard = binding; guidance/best-practice = non-binding) and the discussion order; sources never override each other.
   3. **Bidirectional cross-references**: link the primary document's relevant Topic Index rows / chapter Topics tables to the added document's sections, and the added document's index cross-reference table back to the primary provisions.
   4. **Reconciliation rule**: where the two sources' wording is unclear or conflicts, do not pick one — create a user note (target = primary provision, `applies-to` = the added document's section) so the ambiguity is recorded as personal interpretation (Step 8.5).
+- **Source replacement (supersede — the common tool-evolution case)**: a NEW source that replaces part of an existing one (e.g. officedown::rdocx_document replacing rmarkdown::word_document for docx work). Treat it as a source addition (separate `<doc-slug>/` folder + own L1 index + own files) PLUS:
+  1. **Mark the superseded files/rows** `(superseded)` in the Document Map / Topic Index instead of silently deleting — old references must still resolve. If the replacement is total and the user confirms, the superseded files may be removed; record the deletion in the update report.
+  2. **Re-point the Topic Index**: rows that previously led to the superseded content now lead to the replacement folder first, with a `(superseded → see <doc-slug>)` note on the old row.
+  3. **One source per file**: the replacement folder's files carry only its own `Source:` line (URL + access date for web sources); never merge two provenances in one file.
 - **Personal insight**: create the note file (Step 8.5) and add it to the Notes Index. No chapter changes.
 
 ### 3. Merge and Regenerate
@@ -425,3 +434,4 @@ Run Step 9.5, then Step 10 with a custom update report: new chapters, superseded
 10. **Topic index is critical** — it's how the agent navigates to the right chapter file.
 11. **Never copy raw book text (study)** — synthesize, summarize, extract signal. (Inverted by rule 2 for reference mode.)
 12. **Copyright care** — generated skills of third-party copyrighted works (incl. standards) are for personal/internal use only; do not redistribute. Public legal texts are fine to use freely.
+13. **Source traceability** — every chapter file carries a `Source:` line naming exactly ONE source: title/version and, for web sources, the URL + access date. Multi-source skills keep each source in its own folder (`<doc-slug>/`) so a file never mixes provenances.

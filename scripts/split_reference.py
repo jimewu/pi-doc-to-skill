@@ -539,8 +539,8 @@ def split_articles_chapter(
         "|-------|------------------|",
         "",
         "## Articles",
-        f"| File | Articles |",
-        f"|------|----------|",
+        "| File | Articles |",
+        "|------|----------|",
     ]
     for label, fname in index_rows:
         idx_header.append(f"| [{fname}]({fname}) | {label} |")

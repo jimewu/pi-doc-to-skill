@@ -712,8 +712,16 @@ class TestDetectStructure:
     def test_toc_spanish_accented(self):
         assert detect_structure("Índice\n1 Introducción")["has_toc"] is True
 
+    def test_toc_portuguese_unaccented(self):
+        # OCR / accent-stripped Brazilian PDFs leave "Sumario" without the accent.
+        assert detect_structure("Sumario\n1 Introdução")["has_toc"] is True
+
     def test_toc_traditional_chinese(self):
         assert detect_structure("目錄\n第一章")["has_toc"] is True
+
+    @pytest.mark.parametrize("header", ["目 录", "目　录", "目 次", "目　次"])
+    def test_toc_cjk_headers_allow_extracted_whitespace(self, header):
+        assert detect_structure(f"{header}\n第一章 开始\n第二章 进阶")["has_toc"] is True
 
     def test_toc_italian_sommario(self):
         assert detect_structure("Sommario\n1 Introduzione")["has_toc"] is True
@@ -1059,6 +1067,84 @@ class TestDocxExtraction:
         assert result["format"] == "docx"
         assert "DOCX test paragraph" in result["text"]
 
+    def test_extract_docx_zipfile_xxe_rejection_direct_call(self, tmp_path):
+        """extract_docx_with_zipfile() must reject malicious XML even when
+        called directly, not just via the extract_docx() wrapper — this is
+        the bypass the self-defending validate_docx_xml_safety() call closes."""
+        ns = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        xml = textwrap.dedent(f"""\
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <!DOCTYPE w:document [
+              <!ENTITY xxe SYSTEM "file:///etc/passwd">
+            ]>
+            <w:document xmlns:w="{ns}">
+              <w:body>
+                <w:p><w:r><w:t>&xxe;</w:t></w:r></w:p>
+              </w:body>
+            </w:document>
+        """)
+        bad_docx = tmp_path / "malicious.docx"
+        with zipfile.ZipFile(bad_docx, "w") as zf:
+            zf.writestr("word/document.xml", xml)
+            zf.writestr("[Content_Types].xml", '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')
+
+        with pytest.raises(ExtractionError, match="Security validation failed"):
+            extract_docx_with_zipfile(str(bad_docx))
+
+    def test_extract_docx_python_docx_xxe_rejection_direct_call(self, tmp_path):
+        """extract_docx_with_python_docx() must reject malicious XML even when
+        called directly, not just via the extract_docx() wrapper — mirrors the
+        zipfile-parser test above. Validation now runs after `import docx`
+        succeeds (so an absent python-docx doesn't pay for a scan that never
+        protects anything -- see extract_docx_with_python_docx's docstring),
+        so `docx` is faked importable here to exercise the guard
+        deterministically regardless of whether python-docx is actually
+        installed in the environment running this test."""
+        from book_to_skill.parsers.docx import extract_docx_with_python_docx
+
+        ns = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        xml = textwrap.dedent(f"""\
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <!DOCTYPE w:document [
+              <!ENTITY xxe SYSTEM "file:///etc/passwd">
+            ]>
+            <w:document xmlns:w="{ns}">
+              <w:body>
+                <w:p><w:r><w:t>&xxe;</w:t></w:r></w:p>
+              </w:body>
+            </w:document>
+        """)
+        bad_docx = tmp_path / "malicious.docx"
+        with zipfile.ZipFile(bad_docx, "w") as zf:
+            zf.writestr("word/document.xml", xml)
+            zf.writestr("[Content_Types].xml", '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')
+
+        with mock.patch.dict(sys.modules, {"docx": mock.MagicMock()}):
+            with pytest.raises(ExtractionError, match="Security validation failed"):
+                extract_docx_with_python_docx(str(bad_docx))
+
+    def test_extract_docx_python_docx_absent_skips_validation_without_raising(self, tmp_path):
+        """Companion to the test above: when python-docx genuinely isn't
+        importable, extract_docx_with_python_docx() must return None (not
+        raise, not scan the archive) -- it can't parse anything either way,
+        malicious or not, so there's no protection to buy by validating."""
+        from book_to_skill.parsers.docx import extract_docx_with_python_docx
+
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "docx":
+                raise ImportError("simulated: python-docx not installed")
+            return real_import(name, *args, **kwargs)
+
+        docx_path = tmp_path / "whatever.docx"
+        docx_path.write_bytes(b"not even a real docx")
+
+        with mock.patch("builtins.__import__", side_effect=fake_import):
+            result = extract_docx_with_python_docx(str(docx_path))
+
+        assert result is None
+
     def test_extract_docx_xxe_rejection(self, tmp_path):
         """Verify that a DOCX with malicious DTD or entity declarations is rejected."""
         from book_to_skill.parsers.docx import extract_docx
@@ -1083,6 +1169,37 @@ class TestDocxExtraction:
             
         with pytest.raises(ExtractionError, match="Security validation failed"):
             extract_docx(str(bad_docx))
+
+    def test_extract_docx_validates_once_when_python_docx_unavailable(self, tmp_path):
+        """Maintainer-requested regression test: validate_docx_xml_safety()
+        must run exactly once through extract_docx() when python-docx isn't
+        installed -- once for real in the zipfile fallback, not also
+        wastefully in the python-docx path before it ImportErrors out. That
+        double-scan (the whole archive, every .xml/.rels member, decoded
+        across five candidate encodings) is exactly what the earlier review
+        round asked to remove."""
+        from book_to_skill.parsers import docx as docx_module
+
+        docx_path = _make_minimal_docx(tmp_path / "test.docx")
+
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "docx":
+                raise ImportError("simulated: python-docx not installed")
+            return real_import(name, *args, **kwargs)
+
+        with mock.patch.object(
+            docx_module,
+            "validate_docx_xml_safety",
+            wraps=docx_module.validate_docx_xml_safety,
+        ) as spy:
+            with mock.patch("builtins.__import__", side_effect=fake_import):
+                text, method = docx_module.extract_docx(str(docx_path))
+
+        assert method == "zipfile-docx"
+        assert "DOCX test paragraph" in text
+        assert spy.call_count == 1
 
 
 
@@ -1506,6 +1623,56 @@ class TestPdftotextEncoding:
         assert captured.get("errors") == "replace"
 
 
+class TestLooksImageOnly:
+    """Scanned PDFs are caught by probing the first pages, before the chain runs."""
+
+    def _probe(self, monkeypatch, stdout, *, has_pdftotext=True):
+        captured = {}
+
+        class _Result:
+            returncode = 0
+
+        _Result.stdout = stdout
+        monkeypatch.setattr(
+            pdf_parser.shutil, "which",
+            lambda name: "/usr/bin/pdftotext" if has_pdftotext else None,
+        )
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return _Result()
+
+        monkeypatch.setattr(pdf_parser.subprocess, "run", fake_run)
+        return captured
+
+    def test_no_text_in_first_pages_is_image_only(self, monkeypatch):
+        captured = self._probe(monkeypatch, "\n\f\n  \f")
+        assert pdf_parser.looks_image_only("scan.pdf") is True
+        # Only the first pages are probed, not the whole book.
+        assert "-l" in captured["cmd"] and captured["cmd"][captured["cmd"].index("-l") + 1] == "5"
+
+    def test_text_in_first_pages_is_not_image_only(self, monkeypatch):
+        self._probe(monkeypatch, "Chapter 1\nOnce upon a time")
+        assert pdf_parser.looks_image_only("book.pdf") is False
+
+    def test_without_pdftotext_probe_is_skipped(self, monkeypatch):
+        self._probe(monkeypatch, "", has_pdftotext=False)
+        assert pdf_parser.looks_image_only("scan.pdf") is False
+
+    def test_extraction_fails_early_with_ocr_hint(self, monkeypatch, tmp_path):
+        from book_to_skill import utils
+
+        pdf = tmp_path / "scan.pdf"
+        pdf.write_bytes(b"%PDF-1.4\n")
+        monkeypatch.setattr(utils, "looks_image_only", lambda path: True)
+
+        with pytest.raises(ExtractionError) as exc:
+            utils.extract_single_file(pdf, "text", "no")
+
+        assert "scanned" in str(exc.value)
+        assert "ocrmypdf" in str(exc.value)
+
+
 class TestPdftotextCleanup:
     """clean_pdftotext strips repeated headers/footers/page numbers and dehyphenates."""
 
@@ -1688,3 +1855,36 @@ class TestCjkTokenEstimate:
 
     def test_empty_is_zero(self):
         assert estimate_tokens("") == 0
+
+
+class TestPdfLibsCleanup:
+    """extract_with_pypdf / extract_with_pdfminer also clean their output."""
+
+    def test_pypdf_output_is_cleaned(self, monkeypatch):
+        pages = [f"HEAD\nsome informa-\ntion page {n}\n{n}" for n in (1, 2, 3)]
+
+        class _Page:
+            def __init__(self, t): self._t = t
+            def extract_text(self): return self._t
+
+        class _Reader:
+            def __init__(self, f): self.pages = [_Page(p) for p in pages]
+
+        import types
+        fake = types.SimpleNamespace(PdfReader=_Reader)
+        monkeypatch.setitem(sys.modules, "pypdf", fake)
+        monkeypatch.setattr("builtins.open", lambda *a, **k: mock.MagicMock())
+
+        out = pdf_parser.extract_with_pypdf("x.pdf")
+        assert "information" in out          # dehyphenated
+        assert "HEAD" not in out             # repeated header stripped
+
+    def test_pdfminer_output_is_cleaned(self, monkeypatch):
+        raw = "\f".join(f"HEAD\ncon-\ntent page {n}\n{n}" for n in (1, 2, 3))
+        import types
+        fake = types.SimpleNamespace(extract_text=lambda path: raw)
+        monkeypatch.setitem(sys.modules, "pdfminer.high_level", fake)
+
+        out = pdf_parser.extract_with_pdfminer("x.pdf")
+        assert "content" in out
+        assert "HEAD" not in out

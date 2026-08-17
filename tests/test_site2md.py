@@ -6,7 +6,6 @@ Network is mocked with a fake requests session: tests never hit the internet.
 import json
 from pathlib import Path
 
-import pytest
 
 from site2md import assemble, cli, extract, inspect
 

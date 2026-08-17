@@ -24,3 +24,6 @@ site/
 
 # Crawl workspace / test artifacts
 *.crawl_tmp/
+
+# Node.js dependencies (extension dev; resolved at install time)
+node_modules/

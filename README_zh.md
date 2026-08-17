@@ -29,7 +29,7 @@ site-to-skill:  網站（URL）→ inspect → crawl+tidy → corpus ─┤
 ## 安裝
 
 ```bash
-pi install <path-to-this-repo>      # 或：pi install git:github.com/jimewu/pi-doc-to-skill
+pi install git:github.com/jimewu/pi-doc-to-skill      # 或讓 pi 指向本 repo 的 local checkout
 ```
 
 Python 依賴放在 **repo 本機 virtualenv**（`.venv/`，已 gitignore），crawl4ai/trafilatura 不會碰系統 Python。一次性設定：

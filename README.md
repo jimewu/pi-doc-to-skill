@@ -33,7 +33,7 @@ in how the book-like Markdown is obtained.
 ## Install
 
 ```bash
-pi install <path-to-this-repo>      # or: pi install git:github.com/jimewu/pi-doc-to-skill
+pi install git:github.com/jimewu/pi-doc-to-skill      # or point pi at a local checkout of this repo
 ```
 
 Python dependencies live in a **repo-local virtualenv** (`.venv/`, git-ignored)

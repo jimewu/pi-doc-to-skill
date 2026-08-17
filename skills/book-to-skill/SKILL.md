@@ -134,10 +134,9 @@ Rules for conversion:
 2. Exit codes: 0 success, 1 conversion failure, 2 usage error. A failure prints one `anydoc: <message>` line to stderr. The CLI never prompts.
 3. **Scanned / image-only PDFs**: anydoc exits 1 with `anydoc: unsupported input: ... (Scanned, N pages): OCR is required` on stderr. Do not treat this as a dead end — use the OCR fallback:
    ```bash
-   batch-ocr \
-       --api $OCR_ENDPOINT <file.pdf>
+   batch-ocr --api "$OCR_ENDPOINT" <file.pdf>
    ```
-   This writes `<file>.md` (plus an `images/` folder) next to the source. Note: the OCR API address is environment-specific — if it fails, ask the user for the current local OCR endpoint.
+   This writes `<file>.md` (plus an `images/` folder) next to the source. `OCR_ENDPOINT` is environment-specific — if it is not set, ask the user for the current local OCR endpoint.
 4. A different stderr message than the OCR case means a genuine conversion failure. For DOCX/EPUB/RTF, if anydoc is unavailable or fails, you may fall back to the native parsers in `scripts/extract.py` (they use `python-docx`/`ebooklib`/`striprtf` when installed) — but PDFs should never fall back to the built-in extractors.
 5. If a converted Markdown file is very large (> ~200KB), keep it on disk and work with it via grep/sed/Read offsets (Step 2.6) instead of loading it whole.
 
@@ -176,14 +175,13 @@ grep -cE "▼|▶|^[0-9]{13} — EN —" "$OUT.md"   # interpret per source type
 **If the checks find real problems** (broken words, merged items, or layout noise in an original text), **do NOT proceed with this conversion.** Re-run with the OCR fallback instead — a verbatim legal/technical skill is only as precise as its source:
 
 ```bash
-batch-ocr \
-    --api $OCR_ENDPOINT <file.pdf>
+batch-ocr --api "$OCR_ENDPOINT" <file.pdf>
 # writes <file>.md (+ images/) next to the source; use THAT file as the input
 ```
 
-The OCR endpoint address is environment-specific — if it fails, ask the user for the current local OCR endpoint. Prefer the conversion with zero or fewest defects; record the chosen method in the skill's `sources[].notes`.
+If the OCR endpoint is unknown, ask the user — it is environment-specific. Prefer the conversion with zero or fewest defects; record the chosen method in the skill's `sources[].notes`.
 
-**Getting the document when the source site blocks downloads:** EUR-Lex sits behind a WAF and rejects plain curl. Try in order: (1) a national official mirror (e.g. `legislation.gov.uk` for EU regulations — its resources page lists per-version PDFs); (2) `webfetch` (browser-based, may pass the WAF); (3) ask the user to download it manually and provide the file path. For EUR-Lex specifically, be aware of the **original-vs-consolidated trap**: the "EN TXT"/"PDF" download buttons serve the ORIGINAL OJ text; the current consolidated text lives under a separate CELEX id (`CELEXID-YYYYMMDD` style) on the "Consolidated version" tab. If the user wants to discuss the law as currently in force, you need the consolidated version — confirm which one they mean.
+(**Getting the document when the source site blocks downloads:** EUR-Lex sits behind a WAF and rejects plain curl. Try in order: (1) a national official mirror (e.g. `legislation.gov.uk` for EU regulations — its resources page lists per-version PDFs); (2) `webfetch` (browser-based, may pass the WAF); (3) ask the user to download it manually and provide the file path. For EUR-Lex specifically, be aware of the **original-vs-consolidated trap**: the "EN TXT"/"PDF" download buttons serve the ORIGINAL OJ text; the current consolidated text lives under a separate CELEX id on the "Consolidated version" tab. If the user wants to discuss the law as currently in force, you need the consolidated version — confirm which one they mean.
 
 ---
 
@@ -315,10 +313,10 @@ Read the first 8,000 characters of `full_text.txt` plus the results of `detect_s
 
 **Version confirmation (regulations, standards, legal texts) — confirm before generating.** Get the version right, because "discussing the law as currently in force" needs the **consolidated** text, not the original:
 1. Classify the source: a consolidated text carries an amendment history — a "▶M1 … ▶MN" marker table ("Amended by:"), revision markers (▼/▶) inside the body, and page footers like `CELEXID — EN — YYYY.MM.DD — NNN.NNN — N`. An original text has none of these.
-2. If the user wants to discuss the document as in force (a legal/regulatory expert skill), and the source is an ORIGINAL text while a newer consolidated version exists, tell the user and offer to use the consolidated version instead — do not silently build on the original. (EUR-Lex's "TXT/PDF" buttons serve the original; the consolidated text is a separate CELEX id `CELEXID-YYYYMMDD` under the "Consolidated version" tab.)
+2. If the user wants to discuss the document as in force (a legal/regulatory expert skill), and the source is an ORIGINAL text while a newer consolidated version exists, tell the user and offer to use the consolidated version instead — do not silently build on the original. (EUR-Lex's "TXT/PDF" buttons serve the original; the consolidated text is a separate CELEX id under the "Consolidated version" tab.)
 3. Record the exact version in metadata:
-   - original: `version: "EU 2017/745 (OJ L 117, 5.5.2017, p. 1)"`
-   - consolidated: `version: "consolidated YYYY.MM.DD (NNN.NNN)"` and list the amendments in `sources[].notes` (e.g. "amendments M1–MN: <regulation refs>; new Article 10a")
+   - original: `version: "<Regulation (EU) YYYY/NN> (OJ L <vol>, <date>, p. <n>)"`
+   - consolidated: `version: "consolidated <YYYY.MM.DD> (<NNN.NNN>)"` and list the amendments in `sources[].notes` (e.g. "amendments M1–M5: <regulation refs>; new Article 10a")
 4. For non-legal documents (textbooks, manuals) the edition/year is enough — no consolidated/original distinction applies.
 
 Produce a structure map (also useful for the Analyze-Only report):

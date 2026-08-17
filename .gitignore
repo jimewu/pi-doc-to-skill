@@ -27,3 +27,7 @@ site/
 
 # Node.js dependencies (extension dev; resolved at install time)
 node_modules/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/

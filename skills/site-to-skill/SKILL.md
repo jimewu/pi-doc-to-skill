@@ -65,9 +65,9 @@ Read the report **before** crawling — it decides everything downstream.
 ### Out-of-scope checks after inspection
 
 - `strategy: unknown` (request failed, bot wall, non-HTML) → report and stop.
-- Site is a web app behind a login / paywall / heavy anti-bot (anti-bot WAF,
-  Cloudflare challenge) → tell the user; try a mirror or ask them to download
-  the content. Do not try to bypass access controls.
+- Site is a web app behind a login / paywall / heavy anti-bot wall → tell
+the user; try a mirror or ask them to download the content. Do not try
+to bypass access controls.
 
 ---
 

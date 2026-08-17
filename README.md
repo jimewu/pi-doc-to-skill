@@ -106,8 +106,7 @@ history (no shared ancestry with `origin/master`), so nothing is pushed to
 | Generation spec | One shared `docs/skill-generation-spec.md` (Steps 6–10, quality rules) consumed by both skills | Everything in SKILL.md |
 | Python setup | Repo-local `.venv` via `scripts/setup-venv.sh`; pyproject with `crawl` extra | System Python, optional packages suggested at runtime |
 
-`CHANGELOG.md` and `PLAN/1_design.md` document the design rationale behind the
-divergence.
+`CHANGELOG.md` documents the design rationale behind the divergence.
 
 ## License
 

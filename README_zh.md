@@ -89,7 +89,7 @@ ruff check --select E9,F book_to_skill/ site2md/ scripts/ tests/ tools/
 | 生成規範 | 單一共用 `docs/skill-generation-spec.md`（Steps 6–10、品質規則），兩 skill 共用 | 全部寫在 SKILL.md |
 | Python 環境 | repo 本機 `.venv`（`scripts/setup-venv.sh`）；pyproject 提供 `crawl` extra | 系統 Python，執行時提示安裝選用套件 |
 
-分歧的設計理由見 `CHANGELOG.md` 與 `PLAN/1_design.md`。
+分歧的設計理由見 `CHANGELOG.md`。
 
 ## License
 

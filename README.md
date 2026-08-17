@@ -1,5 +1,7 @@
 # pi-doc-to-skill
 
+> **繁體中文版**: [README_zh.md](README_zh.md)
+
 Turn **documents** (PDF/EPUB/DOCX/Markdown…) *and* **book-like websites** (docs
 sites, online books, course sites) into reusable agent skills — as a single
 self-contained [pi](https://github.com/earendil-works/pi-coding-agent) package.
@@ -82,6 +84,30 @@ pip install pytest beautifulsoup4
 pytest tests/ -q          # 315 tests, network mocked
 ruff check --select E9,F book_to_skill/ site2md/ scripts/ tests/ tools/
 ```
+
+## Relationship to upstream (book-to-skill)
+
+This repository is a **fork** of
+[`virgiliojr94/book-to-skill`](https://github.com/virgiliojr94/book-to-skill)
+(fork point ≈ upstream commit `b4b3733`, 2026-08-06, just before v1.4.0). The
+fork has diverged so far that the two are no longer drop-in interchangeable.
+**Local is the source of truth** — the fork was re-initialized as a fresh git
+history (no shared ancestry with `origin/master`), so nothing is pushed to
+`origin` without a deliberate review.
+
+### Route differences vs. baseline
+
+| Axis | This fork (pi-doc-to-skill) | Baseline (book-to-skill) |
+|---|---|---|
+| Packaging | Self-contained **pi package** (`pi install`): 2 skills + custom-tools extension | Standalone skill for Copilot CLI / Amp / Claude Code |
+| Document conversion | **anydoc** (Firecrawl) at skill level; **OCR fallback** (batch-ocr) for scanned PDFs; quality gate rejects broken conversions | Built-in extractors (pdftotext / pypdf / pdfminer / Docling) |
+| Sources | Documents **and book-like websites** (site2md crawler + `site_inspect` / `site2md` / `page_fetch` / `page_extract` tools) | Documents only |
+| Skill modes | Explicit **reference (verbatim) / study (distilled)** fork of the pipeline; notes layer in both; verbatim chapter splitting for legal/regulatory text (`scripts/split_reference.py`, fork-only) | Study-focused; text/technical book types + DEPTH axis |
+| Generation spec | One shared `docs/skill-generation-spec.md` (Steps 6–10, quality rules) consumed by both skills | Everything in SKILL.md |
+| Python setup | Repo-local `.venv` via `scripts/setup-venv.sh`; pyproject with `crawl` extra | System Python, optional packages suggested at runtime |
+
+`CHANGELOG.md` and `PLAN/1_design.md` document the design rationale behind the
+divergence.
 
 ## License
 

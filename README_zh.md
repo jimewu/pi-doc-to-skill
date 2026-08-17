@@ -1,5 +1,7 @@
 # pi-doc-to-skill
 
+> **English version**: [README.md](README.md)
+
 把**文件**（PDF/EPUB/DOCX/Markdown…）與**像一本書的網站**（文檔站、線上書籍、課程站）轉成可重複使用的 agent skill — 以單一自洽的 [pi](https://github.com/earendil-works/pi-coding-agent) package 形式提供。
 
 ```
@@ -71,6 +73,23 @@ pip install pytest beautifulsoup4
 pytest tests/ -q          # 315 tests，網路已 mock
 ruff check --select E9,F book_to_skill/ site2md/ scripts/ tests/ tools/
 ```
+
+## 與 upstream（book-to-skill）的關係
+
+本 repo 是 [`virgiliojr94/book-to-skill`](https://github.com/virgiliojr94/book-to-skill) 的 **fork**（fork 點 ≈ upstream commit `b4b3733`，2026-08-06，v1.4.0 前一版）。fork 之後路線差異已大到兩者無法直接互換。**以 local 為準** —— fork 被重新初始化為全新 git 歷史（與 `origin/master` 無共同祖先），因此在未經審慎評估前不會向 `origin` push。
+
+### 與 baseline 的路線差異
+
+| 面向 | 本 fork（pi-doc-to-skill） | Baseline（book-to-skill） |
+|---|---|---|
+| 封裝 | 自洽的 **pi package**（`pi install`）：2 skills + custom-tools extension | 獨立 skill，供 Copilot CLI / Amp / Claude Code 使用 |
+| 文件轉換 | skill 層使用 **anydoc**（Firecrawl）+ 掃描 PDF 的 **OCR fallback**（batch-ocr）；品質 gate 拒絕有缺漏的轉換結果 | 內建抽取器（pdftotext / pypdf / pdfminer / Docling） |
+| 來源 | 文件**以及書狀網站**（site2md 爬蟲 + `site_inspect` / `site2md` / `page_fetch` / `page_extract` tools） | 僅文件 |
+| skill 模式 | 明確的 **reference（逐字）/ study（摘要）** 分流；兩模式都有 notes 層；法規/標準文本逐字切分（`scripts/split_reference.py`，本 fork 獨有） | 以 study 為主；text/technical 書籍類型 + DEPTH 軸 |
+| 生成規範 | 單一共用 `docs/skill-generation-spec.md`（Steps 6–10、品質規則），兩 skill 共用 | 全部寫在 SKILL.md |
+| Python 環境 | repo 本機 `.venv`（`scripts/setup-venv.sh`）；pyproject 提供 `crawl` extra | 系統 Python，執行時提示安裝選用套件 |
+
+分歧的設計理由見 `CHANGELOG.md` 與 `PLAN/1_design.md`。
 
 ## License
 

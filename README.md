@@ -85,6 +85,14 @@ pytest tests/ -q          # 315 tests, network mocked
 ruff check --select E9,F book_to_skill/ site2md/ scripts/ tests/ tools/
 ```
 
+## Security
+
+See [SECURITY-NOTICE.md](SECURITY-NOTICE.md) — a known **malicious re-upload of
+the upstream `book-to-skill`** exists (`Leutenegger/book-to-skill`, wallet
+exfiltration behavior). Install only from the official repository of this fork
+(`git:github.com/jimewu/pi-doc-to-skill`) or the upstream project
+(`virgiliojr94/book-to-skill`).
+
 ## Relationship to upstream (book-to-skill)
 
 This repository is a **fork** of

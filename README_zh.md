@@ -74,6 +74,10 @@ pytest tests/ -q          # 315 tests，網路已 mock
 ruff check --select E9,F book_to_skill/ site2md/ scripts/ tests/ tools/
 ```
 
+## 安全性
+
+見 [SECURITY-NOTICE.md](SECURITY-NOTICE.md) —— 已知存在**惡意冒名的 upstream `book-to-skill` 重傳版**（`Leutenegger/book-to-skill`，含竊取加密錢包資料行為）。請只從本 fork 官方來源（`git:github.com/jimewu/pi-doc-to-skill`）或 upstream 專案（`virgiliojr94/book-to-skill`）安裝。
+
 ## 與 upstream（book-to-skill）的關係
 
 本 repo 是 [`virgiliojr94/book-to-skill`](https://github.com/virgiliojr94/book-to-skill) 的 **fork**（fork 點 ≈ upstream commit `b4b3733`，2026-08-06，v1.4.0 前一版）。fork 之後路線差異已大到兩者無法直接互換。**以 local 為準** —— fork 被重新初始化為全新 git 歷史（與 `origin/master` 無共同祖先），因此在未經審慎評估前不會向 `origin` push。

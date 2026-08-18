@@ -234,7 +234,7 @@ Set `WORKDIR` to the directory you created in Step 1.6 (pass `BOOK_SKILL_WORKDIR
 
 This creates:
 - `<WORKDIR>/full_text.txt` — combined extracted text of all sources with clear source boundaries.
-- `<WORKDIR>/metadata.json` — combined size, words, pages, token counts, chapter structure, and per-source details.
+- `<WORKDIR>/metadata.json` — combined size, words, pages, token counts, chapter structure, per-source details, and dropped-EPUB-image counts.
 
 **Preflight tip:** run `"$PYTHON_BIN" "$SCRIPT_PATH" --check` to print a per-format report of installed extractors without processing any file.
 
@@ -249,6 +249,7 @@ Read `<WORKDIR>/metadata.json` and present an estimate **before generating**:
 ```
 📖 Sources detected: <total_sources> source(s)
 <list each source filename and format from the sources metadata list>
+<if images_dropped > 5: warn that N source images were not read>
 📄 Combined Pages/Sections: ~<N> | Words: ~<N> | Total tokens: ~<N>K
 
 💰 Estimated token cost (Full Conversion / Update):
